@@ -40,11 +40,12 @@ def populacao_aleatoria(n):
         Os indivíduos podem tomar 3 ações (0, 1, 2) e cada linha da matriz
         contém os pesos associados a uma das ações.
     """
-    # Referência: np.random.uniform()
-    #             list.append()
-    #             for loop (for x in lista:)
-    pass
-
+    
+    individuos = []
+    for i in range(n):
+        individuo = np.random.uniform(-20,20,(3,10))
+        individuos.append(individuo)
+    return individuos
 
 def valor_das_acoes(individuo, estado):
     """
@@ -57,7 +58,8 @@ def valor_das_acoes(individuo, estado):
         multiplica a matriz de pesos pelo estado.
     """
     # Referência: multiplicação de matrizes (A @ B)
-    pass
+    acoes = individuo @ estado
+    return acoes
 
 
 def melhor_jogada(individuo, estado):
@@ -68,8 +70,9 @@ def melhor_jogada(individuo, estado):
     Saída:
         A ação de maior valor (0, 1 ou 2) calculada pela função valor_das_acoes.
     """
-    # Referência: np.argmax()
-    pass
+    acoes = valor_das_acoes(individuo, estado)
+    acao = np.argmax(acoes)
+    return acao
 
 
 def mutacao(individuo):
@@ -85,7 +88,12 @@ def mutacao(individuo):
 
     # A modificação dos pesos pode ser feita de diversas formas (vide slides)
 
-    pass
+    for i,linha in enumerate(individuo):
+        for j,elemento in enumerate(linha):
+            chance = np.random.uniform(0,1,1)
+            if chance <= CHANCE_MUT:
+                multiplicador = np.random.uniform(0.7,1.8,1)
+                elemento = elemento * multiplicador
 
 
 def crossover(individuo1, individuo2):
@@ -101,7 +109,13 @@ def crossover(individuo1, individuo2):
     """
     # Referência: for loop (for x in lista)
     #             np.random.uniform()
-    pass
+    filho = individuo1.copy()
+    for i, linha in enumerate(filho):
+        for j, elemento in enumerate(linha):
+            chance = np.random.uniform(0,1,1)
+            if chance <= CHANCE_CO:
+                elemento = individuo2[i][j]
+    return filho
 
 
 def calcular_fitness(jogo, individuo):
@@ -128,7 +142,8 @@ def calcular_fitness(jogo, individuo):
 
     jogo.reset()
     while not jogo.game_over:
-        acao = ?
+        estado = jogo.get_state()
+        acao = melhor_jogada(individuo, estado)
         jogo.step(acao)
     return jogo.get_score()
 
@@ -154,21 +169,21 @@ def proxima_geracao(populacao, fitness):
     #             lista[a:b]
 
     # Dica: lembre-se da função `ordenar_lista(lista, ordenacao)`.
-
+    populacao_ordenada = ordenar_lista(populacao, fitness)
     proxima_ger = []
+    populacao_mantida = populacao_ordenada[:NUM_MELHORES]
 
+    for individuo_antigo in populacao_mantida:
+        proxima_ger.append(individuo_antigo)
     # Adicionar os melhores indivíduos da geração atual na próxima geração
 
     while len(proxima_ger) < NUM_INDIVIDUOS:
-        # Selecionar 2 indivíduos, realizar crosover e mutação,
-        # e adicionar o novo indivíduo à próxima geração
-        #
-        # Você pode usar a função random.choices(populacao, weights=None, k=2) para selecionar `k`
-        # elementos aleatórios da população.
-        #
-        # Se vc passar o argumento `weights`, os indivíduos serão escolhidos com base nos pesos
-        # especificados (elementos com pesos maiores são escolhidos mais frequentemente).
-        # Uma ideia seria usar o fitness como peso.
+        pais = random.choices(populacao_mantida, k=2)
+        mae = pais[0]
+        pai = pais[1]
+        filho = crossover(mae, pai)
+        mutacao(filho)
+        proxima_ger.append(filho)
 
     return proxima_ger
 
@@ -185,7 +200,7 @@ def mostrar_melhor_individuo(jogo, populacao, fitness):
     # VOCÊ NÃO PRECISA MEXER NESSA FUNÇÂO
 
     fps_antigo = jogo.fps
-    jogo.fps = 100
+    jogo.fps = 30
     ind = populacao[max(range(len(populacao)), key=lambda i: fitness[i])]
     print('Melhor individuo:', ind)
     while True:
@@ -207,10 +222,10 @@ def mostrar_melhor_individuo(jogo, populacao, fitness):
 #      Eles estão aqui para facilitar a visualização do algoritmo.
 
 num_geracoes = 100
-jogo = DinoGame(fps=50_000)
+jogo = DinoGame(fps=5_000)
 
 # Crie a população usando populacao_aleatoria(NUM_INDIVIDUOS)
-populacao = ?
+populacao = populacao_aleatoria(NUM_INDIVIDUOS)
 
 print('ger | fitness\n----+-' + '-'*5*NUM_INDIVIDUOS)
 
@@ -220,8 +235,11 @@ for ger in range(num_geracoes):
 
     # Atualize a população usando a função próxima_geração.
 
-    fitness = ?
-    populacao = ?
+    fitness = []
+    for individuo_g in populacao:
+        fitness_invidual = calcular_fitness(jogo, individuo_g)
+        fitness.append(fitness_invidual)
+    populacao = proxima_geracao(populacao,fitness)
 
     print('{:3} |'.format(ger),
           ' '.join('{:4d}'.format(s) for s in sorted(fitness, reverse=True)))
@@ -229,5 +247,10 @@ for ger in range(num_geracoes):
     # Opcional: parar se o fitness estiver acima de algum valor (p.ex. 300)
 
 # Calcule a lista de fitness para a última geração
+
+fitness = []
+for individu_g in populacao:
+    fitness_invidual = calcular_fitness(jogo, individuo_g)
+    fitness.append(fitness_invidual)
 
 mostrar_melhor_individuo(jogo, populacao, fitness)
